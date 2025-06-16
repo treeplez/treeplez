@@ -1,0 +1,179 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <locale>
+#include <codecvt> // Для преобразования кодировок 
+
+using namespace std;
+
+const int SIZE = 10;
+
+// Обозначения на поле
+// Используем wchar_t для поддержки русских символов
+wchar_t EMPTY_CELL = L'·'; // точка или любой символ
+wchar_t SHIP_CELL = L'■';   // корабль
+wchar_t HIT_CELL = L'X';    // попадание
+wchar_t MISS_CELL = L'•';   // промах
+
+// Создаем поле
+vector<vector<wchar_t>> createField() {
+    return vector<vector<wchar_t>>(SIZE, vector<wchar_t>(SIZE, EMPTY_CELL));
+}
+
+// Вывод поля (скрываем корабли)
+void printField(const vector<vector<wchar_t>>& field, bool hideShips) {
+    wcout << L"  ";
+    for (int i = 0; i < SIZE; ++i)
+        wcout << i << L" ";
+    wcout << endl;
+
+    for (int i = 0; i < SIZE; ++i) {
+        wcout << i << L" ";
+        for (int j = 0; j < SIZE; ++j) {
+            if (hideShips && field[i][j] == SHIP_CELL)
+                wcout << EMPTY_CELL << L" ";
+            else
+                wcout << field[i][j] << L" ";
+        }
+        wcout << endl;
+    }
+}
+
+// Размещение корабля случайно
+void placeShip(vector<vector<wchar_t>>& field, int length) {
+    bool placed = false;
+    while (!placed) {
+        int dir = rand() % 2; // 0 - горизонтально, 1 - вертикально
+        int row = rand() % SIZE;
+        int col = rand() % SIZE;
+
+        bool canPlace = true;
+        for (int i = 0; i < length; ++i) {
+            int r = row + (dir == 1 ? i : 0);
+            int c = col + (dir == 0 ? i : 0);
+            if (r >= SIZE || c >= SIZE || field[r][c] == SHIP_CELL) {
+                canPlace = false;
+                break;
+            }
+        }
+
+        if (canPlace) {
+            for (int i = 0; i < length; ++i) {
+                int r = row + (dir == 1 ? i : 0);
+                int c = col + (dir == 0 ? i : 0);
+                field[r][c] = SHIP_CELL;
+            }
+            placed = true;
+        }
+    }
+}
+
+// Проверка попадания
+bool attack(vector<vector<wchar_t>>& enemyField, int row, int col) {
+    if (enemyField[row][col] == SHIP_CELL) {
+        enemyField[row][col] = HIT_CELL;
+        return true;
+    } else if (enemyField[row][col] == EMPTY_CELL) {
+        enemyField[row][col] = MISS_CELL;
+        return false;
+    }
+    // Уже был выстрел сюда
+    return false;
+}
+
+// Проверка, все ли корабли уничтожены
+bool allShipsSunk(const vector<vector<wchar_t>>& field) {
+    for (const auto& row : field)
+        for (auto cell : row)
+            if (cell == SHIP_CELL)
+                return false;
+    return true;
+}
+
+int main() {
+    // Установка локали для поддержки русского языка
+    setlocale(LC_ALL, "");
+    
+    // Для Windows: установка кодовой страницы на UTF-8
+#ifdef _WIN32
+    system("chcp 65001");
+#endif
+
+    srand(time(nullptr));
+
+    vector<vector<wchar_t>> playerField = createField();
+    vector<vector<wchar_t>> computerField = createField();
+
+    vector<int> shipsLengths = {4,3,3,2,2,2};
+
+    for (int len : shipsLengths) {
+        placeShip(playerField, len);
+        placeShip(computerField, len);
+    }
+
+    wcout << L"Добро пожаловать в морской бой!\n";
+
+    bool gameOver = false;
+
+    while (!gameOver) {
+        // Ход игрока
+        wcout << L"\nВаше поле:\n";
+        printField(playerField, false);
+
+        wcout << L"\nПоле противника:\n";
+        printField(computerField, true);
+
+        int r, c;
+        wcout << L"Введите координаты для атаки: ";
+        cin >> r >> c;
+
+        if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) {
+            wcout << L"Некорректные координаты. Попробуйте снова.\n";
+            continue;
+        }
+
+        if (computerField[r][c] == HIT_CELL || computerField[r][c] == MISS_CELL) {
+            wcout << L"Вы уже стреляли сюда. Попробуйте другие координаты.\n";
+            continue;
+        }
+
+        bool hitResult = attack(computerField, r,c);
+        
+        if (hitResult)
+            wcout << L"Попадание!\n";
+        else
+            wcout << L"Мимо.\n";
+
+        if (allShipsSunk(computerField)) {
+            wcout << L"Поздравляем! Вы победили!\n";
+            break;
+        }
+
+        // Ход компьютера — случайный выстрел по полю игрока
+        int cr, cc;
+        do {
+            cr = rand() % SIZE;
+            cc = rand() % SIZE;
+        } while (playerField[cr][cc] == HIT_CELL || playerField[cr][cc] == MISS_CELL);
+
+        bool compHit = attack(playerField, cr, cc);
+        
+        wcout << L"Компьютер стреляет в (" << cr << L", " << cc << L")... ";
+        
+        if (compHit)
+            wcout << L"Попадание!\n";
+        else
+            wcout << L"Мимо.\n";
+
+        if (allShipsSunk(playerField)) {
+            wcout << L"Вы проиграли. Компьютер победил.\n";
+            break;
+        }
+    }
+
+#ifdef _WIN32
+    system("pause");
+#endif
+
+    return 0;
+}
