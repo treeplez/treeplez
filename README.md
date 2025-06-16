@@ -3,8 +3,8 @@
 - 🌱 I am currently learning C++ Programming Language.
 - 💞️ I’m looking to collaborate on -
 - 📫 How to reach me -
-- 😄 Pronouns: She
-- ⚡ Fun fact: I love to sleep
+- 😄 Pronouns: 
+- ⚡ Fun fact: 
 
 <!---
 treeplez/treeplez is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
